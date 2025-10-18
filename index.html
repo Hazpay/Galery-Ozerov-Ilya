@@ -3,332 +3,253 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Галерея художника — чистый HTML/JS (без PHP)</title>
+  <title>Галерея художника — GitHub auto-load</title>
   <style>
     :root{
-      --bg:#0b0e13; --fg:#e9eef6; --muted:#9aa3b2; --line:#1d2330; --glass:rgba(18,22,30,.45); --acc:#3b82f6;
-      --shadow: 0 12px 35px rgba(0,0,0,.45);
+      --bg:#0b0e13; --fg:#e9eef6; --muted:#9aa3b2; --line:#1d2330; --glass:rgba(18,22,30,.45); --acc:#7dd3fc;
+      --card:rgba(255,255,255,.06); --shadow: 0 12px 35px rgba(0,0,0,.45);
     }
-    :root.light{
-      --bg:#f7f8fc; --fg:#0f1220; --muted:#55607a; --line:#dfe3ee; --glass:rgba(255,255,255,.55); --acc:#2563eb;
-      --shadow: 0 10px 28px rgba(20,40,80,.12);
+    @media (prefers-color-scheme: light) {
+      :root{
+        --bg:#f7f8fc; --fg:#0f1220; --muted:#55607a; --line:#dfe3ee; --glass:rgba(255,255,255,.55); --acc:#2563eb;
+        --card:rgba(0,0,0,.05); --shadow: 0 10px 28px rgba(20,40,80,.12);
+      }
     }
     *{box-sizing:border-box}
     html,body{height:100%}
-    body{margin:0;background:var(--bg);color:var(--fg);font:14px/1.55 system-ui,-apple-system,Segoe UI,Roboto,Ubuntu}
-    .app{height:100%;display:grid;grid-template-rows:auto 1fr}
+    body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.55 system-ui,Segoe UI,Roboto,Helvetica,Arial,sans-serif;-webkit-font-smoothing:antialiased}
+    a{color:inherit;text-decoration:none}
 
-    header{display:flex;align-items:center;justify-content:space-between;padding:10px 12px;gap:8px;border-bottom:1px solid var(--line)}
-    .brand{display:flex;align-items:center;gap:10px}
-    .logo{width:26px;height:26px;border-radius:6px;background:linear-gradient(135deg,#6ee7ff,#3b82f6,#9333ea)}
-    .title{font-weight:700;letter-spacing:.2px}
-    .leftStack{display:flex;align-items:center;gap:8px}
-    .collections{position:relative}
-    .collections button{border:1px solid var(--line);background:transparent;color:var(--fg);padding:8px 10px;border-radius:10px;cursor:pointer}
-    .menu{position:absolute;top:100%;left:0;min-width:220px;background:var(--bg);border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow);padding:6px;display:none;z-index:5}
-    .menu.open{display:block}
-    .menu .item{display:flex;justify-content:space-between;gap:8px;padding:8px;border-radius:8px;cursor:pointer}
-    .menu .item:hover{background:rgba(128,128,128,.08)}
-    .count{color:var(--muted);font-size:12px}
-    .tools{display:flex;align-items:center;gap:8px}
-    .btn{border:1px solid var(--line);background:transparent;color:var(--fg);padding:8px 10px;border-radius:10px;cursor:pointer}
+    /* Шапка */
+    .topbar{position:fixed;inset:0 0 auto 0;height:56px;display:flex;align-items:center;gap:10px;padding:0 14px;border-bottom:1px solid var(--line);z-index:30}
+    .brand{font-weight:700;letter-spacing:.2px;opacity:.95}
 
-    .stage{position:relative;height:calc(100vh - 58px);overflow:hidden}
-    .slide{position:absolute;inset:0;display:grid;place-items:center;opacity:0;transition:opacity .35s ease}
-    .slide.active{opacity:1}
-    .art{position:relative;width:100%;height:100%}
-    .art img{position:absolute;inset:0;margin:auto;max-width:100%;max-height:100%;object-fit:contain;filter:drop-shadow(0 12px 24px rgba(0,0,0,.35))}
-    .glass{position:absolute;left:50%;bottom:18px;transform:translateX(-50%);display:flex;gap:10px;align-items:center;backdrop-filter: blur(10px);-webkit-backdrop-filter: blur(10px);background:var(--glass);border:1px solid var(--line);padding:10px 14px;border-radius:12px;color:var(--fg);box-shadow:var(--shadow)}
-    .name{font-weight:700}
-    .meta{color:var(--muted)}
-    .nav{position:absolute;top:50%;transform:translateY(-50%);display:flex;align-items:center;justify-content:center;width:52px;height:52px;border-radius:50%;backdrop-filter: blur(8px);background:var(--glass);border:1px solid var(--line);box-shadow:var(--shadow);cursor:pointer;user-select:none}
-    .nav:hover{transform:translateY(-50%) scale(1.06)}
-    .prev{left:14px}
-    .next{right:14px}
-    .progress{position:absolute;left:50%;top:12px;transform:translateX(-50%);display:flex;gap:4px}
-    .dot{width:24px;height:4px;border-radius:4px;background:rgba(255,255,255,.18)}
-    .dot.on{background:var(--acc)}
-    @keyframes ken1 { 0% { transform: scale(1) translate(0,0)} 100%{ transform: scale(1.08) translate(10px, -6px)} }
-    @keyframes ken2 { 0% { transform: scale(1.02) translate(0,0)} 100%{ transform: scale(1.12) translate(-8px, 10px)} }
-    .kenburns-1{ animation: ken1 18s ease-in-out forwards }
-    .kenburns-2{ animation: ken2 18s ease-in-out forwards }
-    .hint{position:absolute;bottom:72px;left:50%;transform:translateX(-50%);font-size:12px;color:var(--muted)}
-    @media (max-width:680px){
-      .glass{left:12px;right:12px;transform:none}
-      .nav{width:44px;height:44px}
-      .progress{display:none}
+    /* Коллекции */
+    .collections{position:fixed;left:12px;top:62px;display:flex;flex-direction:column;gap:8px;z-index:25}
+    .pill{display:inline-flex;align-items:center;gap:8px;border:1px solid var(--line);background:var(--glass);backdrop-filter:blur(14px) saturate(160%);
+      padding:8px 12px;border-radius:999px;box-shadow:var(--shadow);cursor:pointer;transition:transform .15s}
+    .pill:hover{transform:translateY(-2px)} .pill.active{outline:2px solid var(--acc)}
+
+    /* Сетка */
+    .grid{padding:80px 14px 24px 14px;max-width:1400px;margin:0 auto;display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:14px}
+    .card{position:relative;overflow:hidden;border-radius:18px;border:1px solid var(--line);background:var(--card);box-shadow:var(--shadow);cursor:pointer}
+    .card img{width:100%;height:260px;object-fit:cover;display:block;transition:transform .6s ease}
+    .card:hover img{transform:scale(1.04)}
+    .caption{position:absolute;left:10px;bottom:10px;padding:10px 12px;border-radius:14px;border:1px solid var(--line);background:var(--glass);
+      backdrop-filter:blur(16px) saturate(180%);box-shadow:var(--shadow);max-width:86%}
+    .title{font-weight:700}
+    .meta{color:var(--muted);font-size:12px;margin-top:2px}
+
+    /* Вьювер */
+    .viewer{position:fixed;inset:0;background:var(--bg);display:none;z-index:40}
+    .viewer.active{display:block}
+    .slide{position:absolute;inset:56px 0 0 0;display:flex;align-items:center;justify-content:center;overflow:hidden}
+    .slide img{max-width:100%;max-height:100%;object-fit:contain;transition:transform 120s ease;will-change:transform}
+    .v-caption{position:fixed;left:14px;bottom:14px;right:14px;display:flex;justify-content:space-between;gap:14px;align-items:flex-end;z-index:45}
+    .glass{border:1px solid var(--line);background:var(--glass);backdrop-filter:blur(14px) saturate(160%);box-shadow:var(--shadow);border-radius:16px;padding:12px 14px}
+    .v-right{display:flex;gap:8px}
+    .btn{padding:8px 12px;border-radius:12px;border:1px solid var(--line);background:var(--glass);cursor:pointer}
+    .arrow{position:fixed;top:50%;transform:translateY(-50%);z-index:45}
+    .arrow.left{left:10px}.arrow.right{right:10px}
+
+    /* Адаптив */
+    @media (max-width:720px){
+      .collections{left:8px}
+      .grid{grid-template-columns:repeat(auto-fill,minmax(160px,1fr));padding-left:8px;padding-right:8px}
+      .card img{height:200px}
     }
-
-    .toolbar{display:flex;gap:8px;align-items:center}
-    .hide{display:none}
   </style>
 </head>
 <body>
-  <div class="app">
-    <header>
-      <div class="leftStack">
-        <div class="brand"><div class="logo"></div><div class="title">Галерея</div></div>
-        <div class="collections" id="collections">
-          <button id="collectionsBtn">Коллекции</button>
-          <div class="menu" id="collectionsMenu"></div>
-        </div>
-      </div>
-      <div class="tools toolbar">
-        <input id="dirPicker" type="file" webkitdirectory directory multiple class="hide" />
-        <button class="btn" id="importBtn" title="Импортировать локальную папку paints">Импортировать папку</button>
-        <button class="btn" id="saveManifestBtn" title="Скачать manifest.json" disabled>Скачать manifest.json</button>
-        <button class="btn" id="themeBtn" title="Ночь/День">Ночь/День</button>
-      </div>
-    </header>
-
-    <main class="stage" id="stage">
-      <div class="nav prev" id="prev" aria-label="Предыдущая">◀</div>
-      <div class="nav next" id="next" aria-label="Следующая">▶</div>
-      <div class="progress" id="progress"></div>
-      <div class="hint" id="hint">Свайпайте влево/вправо</div>
-    </main>
+  <div class="topbar">
+    <div class="brand">Галерея</div>
+    <div style="margin-left:auto;opacity:.6;font-size:12px">auto: Hazpay/Galery-Ozerov-Ilya / paints</div>
   </div>
 
+  <div class="collections" id="collections"></div>
+  <main id="view-grid" class="grid"></main>
+
+  <section id="viewer" class="viewer" aria-hidden="true">
+    <div class="arrow left"><button class="btn" id="prev">←</button></div>
+    <div class="arrow right"><button class="btn" id="next">→</button></div>
+    <div class="slide"><img id="big" alt="artwork"/></div>
+    <div class="v-caption">
+      <div class="glass">
+        <div id="v-title" class="title"></div>
+        <div id="v-meta" class="meta"></div>
+      </div>
+      <div class="v-right">
+        <button class="btn" id="close">✕</button>
+        <a class="btn" id="rawOpen" target="_blank" rel="noreferrer">Открыть файл</a>
+      </div>
+    </div>
+  </section>
+
 <script>
-const root = document.documentElement;
-const stage = document.getElementById('stage');
-const btnPrev = document.getElementById('prev');
-const btnNext = document.getElementById('next');
-const progress = document.getElementById('progress');
-const hint = document.getElementById('hint');
-const collBtn = document.getElementById('collectionsBtn');
-const collMenu = document.getElementById('collectionsMenu');
-const themeBtn = document.getElementById('themeBtn');
-
-const importBtn = document.getElementById('importBtn');
-const dirPicker = document.getElementById('dirPicker');
-const saveManifestBtn = document.getElementById('saveManifestBtn');
-
-const state = {
-  idx:0, filter:'all',
-  list:[], all:[], collections:[],
-  // для режима импорта из папки: карта filePath -> blobURL
-  blobMap: new Map(),
-  manifest: null, // последний собранный manifest для сохранения
+/* ================== КОНФИГ GITHUB ================== */
+const GH = {
+  owner: 'Hazpay',
+  repo:  'Galery-Ozerov-Ilya',
+  branch:'main',
+  dir:   'paints'
 };
+/* =============== УТИЛИТЫ И СОСТОЯНИЕ =============== */
+const $ = s=>document.querySelector(s);
+const grid = $('#view-grid'), colBox=$('#collections');
+const viewer=$('#viewer'), big=$('#big'), vTitle=$('#v-title'), vMeta=$('#v-meta'), rawOpen=$('#rawOpen');
 
-(function initTheme(){
-  const saved = localStorage.getItem('theme');
-  if(saved==='light') root.classList.add('light');
-  themeBtn.onclick = ()=>{
-    root.classList.toggle('light');
-    localStorage.setItem('theme', root.classList.contains('light')? 'light':'dark');
-  }
-})();
+let catalog = {}; // { collection: [ {title,size,materials,raw,...} ] }
+let flat = [];    // текущий набор для слайдера
+let current = 0;
 
-function esc(s){return String(s||'').replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c]))}
-function parseMeta(filename){
+function escapeHtml(s=''){return s.replace(/[&<>\"']/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c]))}
+function parseName(filename){
   const base = filename.replace(/\.[^.]+$/,'');
   let title=base, size='', materials='';
   if(base.includes('__')){ const [t,s,m]=base.split('__'); title=t||base; size=s||''; materials=m||''; }
   else if(base.includes(' - ')){ const [t,s,m]=base.split(' - '); title=t||base; size=s||''; materials=m||''; }
   return {title,size,materials};
 }
-
-// ===== 1) Пытаемся загрузить paints/manifest.json =====
-async function boot(){
-  try{
-    const r = await fetch('paints/manifest.json', {cache:'no-store'});
-    if(!r.ok) throw new Error('no manifest');
-    const data = await r.json(); // {dir:'paints', groups:[{name,items:[{file}]}]}
-    useManifest(data, /*fromImport=*/false);
-  }catch(e){
-    infoBox('Манифест не найден. Нажми «Импортировать папку» и выбери локальную папку paints (в ней подпапки: Astronauts, Cards, Flowers, Others, Text). После импорта можно «Скачать manifest.json».');
-  }
-}
-boot();
-
-// ===== 2) Импорт через <input type="file" webkitdirectory> =====
-importBtn.onclick = ()=> dirPicker.click();
-
-dirPicker.onchange = async (e)=>{
-  const files = [...e.target.files];
-  if(!files.length) return;
-
-  // фильтруем изображения
-  const allow = new Set(['jpg','jpeg','png','webp','gif','bmp','svg']);
-  const imgs = files.filter(f=> allow.has(f.name.split('.').pop()?.toLowerCase()||'') );
-
-  // группируем по первой подпапке после paints/
-  // ожидаем относительный путь вида: paints/<Group>/<File>
-  const groupsMap = new Map();
-  state.blobMap.clear();
-
-  for(const f of imgs){
-    const rel = f.webkitRelativePath || f.name; // webkitRelativePath даёт путь от выбранной папки
-    // ищем шаблон paints/<Group>/<File>
-    const parts = rel.split(/[\\/]/);
-    const paintsIdx = parts.findIndex(p=>p.toLowerCase()==='paints');
-    if(paintsIdx===-1 || parts.length < paintsIdx+3) continue;
-    const groupName = parts[paintsIdx+1];
-    const fileName  = parts.slice(paintsIdx+2).join('/'); // поддержка вложений в группе
-    const filePath  = groupName + '/' + fileName;
-
-    const list = groupsMap.get(groupName) || [];
-    list.push({ file: filePath, fileObj: f });
-    groupsMap.set(groupName, list);
-  }
-
-  // строим manifest-подобный объект
-  const manifest = { dir: 'paints', groups: [] };
-  for(const [name, arr] of [...groupsMap.entries()].sort((a,b)=>a[0].localeCompare(b[0], 'ru'))){
-    // сортируем файлы по имени
-    arr.sort((a,b)=> a.file.localeCompare(b.file, 'ru', {numeric:true, sensitivity:'base'}));
-    // создаём blobURL для каждого файла — чтобы <img> мог показать локальный файл
-    const items = arr.map(({file, fileObj})=>{
-      const url = URL.createObjectURL(fileObj);
-      state.blobMap.set(file, url);
-      return { file, url };
-    });
-    manifest.groups.push({ name, items });
-  }
-
-  state.manifest = manifest;
-  useManifest(manifest, /*fromImport=*/true);
-  saveManifestBtn.disabled = false;
-};
-
-// ===== Применить манифест к UI =====
-function useManifest(data, fromImport){
-  // коллекции
-  state.collections = [{key:'all', name:'Все работы'}].concat(
-    data.groups.map(g=>({key:g.name, name:g.name}))
-  );
-  // список работ
-  state.all = data.groups.flatMap(g=>{
-    return g.items.map(it=>{
-      const fname = it.file.split('/').pop();
-      const meta = parseMeta(fname);
-      // если импорт из input — используем blob URL; иначе — относительный путь
-      const src = fromImport
-        ? (it.url || state.blobMap.get(it.file))  // импорт
-        : `${data.dir}/${it.file}`;               // из статики
-      return {
-        series: g.name,
-        name: meta.title,
-        size: meta.size,
-        materials: meta.materials,
-        src
-      };
-    });
-  });
-
-  renderCollections();
-  setFilter('all');
+function isImage(name){ return /\.(jpe?g|png|webp|gif|bmp|svg)$/i.test(name); }
+function rawUrl(path){ return `https://raw.githubusercontent.com/${GH.owner}/${GH.repo}/${GH.branch}/${path}`; }
+async function ghList(path){
+  const api = `https://api.github.com/repos/${GH.owner}/${GH.repo}/contents/${encodeURIComponent(path)}?ref=${GH.branch}&per_page=100`;
+  const r = await fetch(api, {headers:{'Accept':'application/vnd.github+json'}});
+  if(!r.ok) throw new Error('GitHub API: '+r.status);
+  return r.json();
 }
 
-// ===== Меню коллекций =====
-function renderCollections(){
-  collMenu.innerHTML = '';
-  state.collections.forEach(c=>{
-    const count = c.key==='all' ? state.all.length : state.all.filter(w=>w.series===c.key).length;
-    const div = document.createElement('div');
-    div.className = 'item';
-    div.innerHTML = `<span>${esc(c.name)}</span><span class="count">${count}</span>`;
-    div.onclick = ()=>{ setFilter(c.key); collMenu.classList.remove('open'); };
-    collMenu.appendChild(div);
+/* ================== ЗАГРУЗКА КАТАЛОГА ================== */
+async function loadCatalog(){
+  const root = await ghList(GH.dir);
+  const folders = root.filter(x=>x.type==='dir');
+  for(const f of folders){
+    const list = await ghList(`${GH.dir}/${f.name}`);
+    catalog[f.name] = list
+      .filter(x=>x.type==='file' && isImage(x.name))
+      .map(x=>{
+        const meta = parseName(x.name);
+        return {
+          collection: f.name,
+          name: x.name,
+          ...meta,
+          raw: rawUrl(`${GH.dir}/${f.name}/${x.name}`),
+          html_url: x.html_url
+        };
+      });
+  }
+  buildUI();
+}
+
+/* ================== UI ПОСТРОЕНИЕ ================== */
+function buildUI(){
+  colBox.innerHTML = '';
+  colBox.appendChild(pill('Все', ()=>showGrid('ALL'), true));
+  for(const col of Object.keys(catalog).sort((a,b)=>a.localeCompare(b,'ru'))){
+    colBox.appendChild(pill(col, ()=>showGrid(col)));
+  }
+  showGrid('ALL');
+}
+function pill(label, onclick, active=false){
+  const el = document.createElement('div');
+  el.className = 'pill'+(active?' active':'');
+  el.textContent = label;
+  el.onclick = ()=>{
+    document.querySelectorAll('.pill').forEach(p=>p.classList.remove('active'));
+    el.classList.add('active'); onclick();
+  };
+  return el;
+}
+function showGrid(scope){
+  viewer.classList.remove('active');
+  const items=[];
+  if(scope==='ALL'){ Object.values(catalog).forEach(arr=>items.push(...arr)); }
+  else { items.push(...(catalog[scope]||[])); }
+  flat = items;
+  grid.innerHTML = items.map((it,i)=>`
+    <article class="card" data-idx="${i}">
+      <img loading="lazy" src="${it.raw}" alt="${escapeHtml(it.title)}"/>
+      <div class="caption">
+        <div class="title">${escapeHtml(it.title || it.name)}</div>
+        <div class="meta">${escapeHtml([it.size,it.materials].filter(Boolean).join(' · '))}</div>
+      </div>
+    </article>
+  `).join('');
+  grid.querySelectorAll('.card').forEach(card=>{
+    card.onclick = ()=> openViewer(parseInt(card.dataset.idx,10));
   });
 }
-collBtn.onclick = ()=> collMenu.classList.toggle('open');
-document.addEventListener('click', (e)=>{ if(!collMenu.contains(e.target) && e.target!==collBtn){ collMenu.classList.remove('open') } });
 
-// ===== Рендер слайдов =====
-function setFilter(key){
-  state.filter = key;
-  state.list = key==='all' ? state.all : state.all.filter(w=>w.series===key);
-  if(!state.list.length){ clearSlides(); return; }
-  buildSlides(); show(0); buildProgress();
+/* ================== ВЬЮВЕР / СЛАЙДЕР ================== */
+function openViewer(idx){
+  current = (idx+flat.length)%flat.length;
+  renderSlide();
+  viewer.classList.add('active');
+  viewer.setAttribute('aria-hidden','false');
+  idleStart();
 }
-function clearSlides(){ stage.querySelectorAll('.slide').forEach(n=>n.remove()); progress.innerHTML=''; }
-
-function buildSlides(){
-  stage.querySelectorAll('.slide').forEach(n=>n.remove());
-  state.list.forEach(w=>{
-    const slide = document.createElement('div'); slide.className='slide';
-    const art = document.createElement('div'); art.className='art';
-    const img = document.createElement('img'); img.alt = w.name; img.src = w.src;
-    const glass = document.createElement('div'); glass.className='glass';
-    glass.innerHTML = `<span class="name">${esc(w.name)}</span><span class="meta">${esc([w.size,w.materials].filter(Boolean).join(' • '))}</span>`;
-    art.appendChild(img); art.appendChild(glass); slide.appendChild(art); stage.appendChild(slide);
-  });
+function closeViewer(){
+  viewer.classList.remove('active');
+  viewer.setAttribute('aria-hidden','true');
+  big.src=''; idleStop();
 }
-function buildProgress(){
-  progress.innerHTML = '';
-  state.list.forEach(()=>{ const d=document.createElement('div'); d.className='dot'; progress.appendChild(d); });
+function renderSlide(){
+  const it = flat[current];
+  big.style.transform='none';
+  big.src = it.raw;
+  vTitle.textContent = it.title || it.name;
+  vMeta.textContent = [it.collection, it.size, it.materials].filter(Boolean).join(' · ');
+  rawOpen.href = it.raw;
 }
-function show(i){
-  state.idx = (i + state.list.length) % state.list.length;
-  const slides = [...stage.querySelectorAll('.slide')];
-  slides.forEach((s,idx)=> s.classList.toggle('active', idx===state.idx));
-  [...progress.children].forEach((d,idx)=> d.classList.toggle('on', idx===state.idx));
-  resetIdleMotion();
+function next(){ current=(current+1)%flat.length; renderSlide(); idleReset(); }
+function prev(){ current=(current-1+flat.length)%flat.length; renderSlide(); idleReset(); }
+
+/* Клавиши / кнопки / свайпы */
+document.getElementById('next').onclick = next;
+document.getElementById('prev').onclick = prev;
+document.getElementById('close').onclick = closeViewer;
+window.addEventListener('keydown',e=>{
+  if(!viewer.classList.contains('active')) return;
+  if(e.key==='ArrowRight') next();
+  else if(e.key==='ArrowLeft') prev();
+  else if(e.key==='Escape') closeViewer();
+});
+(function swipe(el){
+  let x0=null,y0=null;
+  el.addEventListener('touchstart',e=>{const t=e.touches[0];x0=t.clientX;y0=t.clientY;idleStop();},{passive:true});
+  el.addEventListener('touchend',e=>{
+    if(x0===null) return;
+    const dx=(e.changedTouches[0].clientX-x0); const dy=(e.changedTouches[0].clientY-y0);
+    if(Math.abs(dx)>50 && Math.abs(dx)>Math.abs(dy)) { dx<0?next():prev(); }
+    idleStart(); x0=y0=null;
+  },{passive:true});
+})(viewer);
+
+/* ================== Режим «рассматривания» ================== */
+let idleTimer=null, kenTimer=null;
+function idleStart(){ clearTimeout(idleTimer); idleTimer=setTimeout(startKenBurns, 5000);
+  window.addEventListener('mousemove', idleResetOnce, {once:true});
+  window.addEventListener('keydown', idleResetOnce, {once:true});
+  viewer.addEventListener('touchstart', idleResetOnce, {once:true});
 }
-function next(){ show(state.idx+1) }
-function prev(){ show(state.idx-1) }
-btnNext.onclick = next; btnPrev.onclick = prev;
-window.addEventListener('keydown', e=>{ if(e.key==='ArrowRight') next(); else if(e.key==='ArrowLeft') prev(); });
-
-// свайпы
-let touchX=null, touchY=null;
-stage.addEventListener('touchstart', e=>{ const t=e.changedTouches[0]; touchX=t.clientX; touchY=t.clientY; stopIdleMotion(); },{passive:true});
-stage.addEventListener('touchend', e=>{ const t=e.changedTouches[0]; const dx=t.clientX-touchX; const dy=Math.abs(t.clientY-touchY);
-  if(Math.abs(dx)>40 && dy<80){ dx<0? next(): prev(); }
-  startIdleTimer();
-},{passive:true});
-// колесо
-stage.addEventListener('wheel', e=>{ if(Math.abs(e.deltaX)+Math.abs(e.deltaY)>0){ e.deltaY>0||e.deltaX>0? next(): prev(); stopIdleMotion(); startIdleTimer(); } },{passive:true});
-
-// Ken Burns
-let idleTimer=null, kenTimer=null, kenToggle=false;
-function startIdleTimer(){ clearTimeout(idleTimer); idleTimer=setTimeout(()=> applyKenBurns(true), 2600); }
-function resetIdleMotion(){ applyKenBurns(false); startIdleTimer(); hint.style.opacity=.0; }
-function stopIdleMotion(){ applyKenBurns(false); clearTimeout(idleTimer); }
-function applyKenBurns(on){
-  const active = stage.querySelector('.slide.active img'); if(!active) return;
-  active.classList.remove('kenburns-1','kenburns-2');
-  if(on){ active.classList.add(kenToggle? 'kenburns-1':'kenburns-2'); kenToggle=!kenToggle; }
-}
-
-// ===== Сохранение manifest.json (если импортировали папку) =====
-saveManifestBtn.onclick = ()=>{
-  if(!state.collections.length || !state.all.length) return;
-  // собрать манифест как в статике
-  const groupsMap = new Map();
-  for(const w of state.all){
-    const arr = groupsMap.get(w.series) || [];
-    // пытаемся восстановить имя файла (последний сегмент из title — недостоверно),
-    // поэтому в режиме импорта сохраняли file в manifest.items.file.
-    // Здесь не знаем исходный относительный путь, поэтому просим пользователя
-    // хранить структуру paints/<Group>/<File> и имена файлов с метаданными.
-    // В экспортируемом манифесте оставим только file (без blob url).
-  }
-  // Мы сохранили исходные пары в state.manifest при импорте — используем их.
-  if(!state.manifest){ alert('Манифест недоступен. Импортируй папку заново.'); return; }
-  const content = JSON.stringify(state.manifest, null, 2);
-  const blob = new Blob([content], {type:'application/json;charset=utf-8'});
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(blob);
-  a.download = 'manifest.json';
-  a.click();
-  URL.revokeObjectURL(a.href);
-};
-
-// вспомогательный блок с подсказкой
-function infoBox(html){
-  const msg = document.createElement('div');
-  msg.style.cssText='margin:90px auto;max-width:760px;padding:12px 14px;border:1px solid var(--line);background:var(--glass);backdrop-filter:blur(10px);border-radius:12px';
-  msg.innerHTML = html;
-  stage.appendChild(msg);
+function idleReset(){ clearTimeout(idleTimer); clearTimeout(kenTimer); big.style.transform='none'; idleStart(); }
+function idleResetOnce(){ idleReset(); }
+function idleStop(){ clearTimeout(idleTimer); clearTimeout(kenTimer); big.style.transform='none'; }
+function startKenBurns(){
+  const scale = 1.12 + Math.random()*0.06;
+  const tx = (Math.random()*20-10);
+  const ty = (Math.random()*20-10);
+  big.style.transform = `scale(${scale}) translate(${tx}vw, ${ty}vh)`;
+  kenTimer = setTimeout(()=>{ big.style.transform='none'; startKenBurns(); }, 25000);
 }
 
-// меню коллекций
-collBtn.onclick = ()=> collMenu.classList.toggle('open');
-document.addEventListener('click', (e)=>{ if(!collMenu.contains(e.target) && e.target!==collBtn){ collMenu.classList.remove('open') } });
+/* ================== СТАРТ ================== */
+loadCatalog().catch(err=>{
+  console.error(err);
+  grid.innerHTML = `<div class="glass" style="margin:90px auto;max-width:760px;padding:12px 14px">
+    Не удалось загрузить данные из GitHub. Проверь репозиторий и папку <code>${GH.dir}</code>.
+  </div>`;
+});
 </script>
 </body>
 </html>
