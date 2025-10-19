@@ -40,17 +40,12 @@
       border-bottom:1px solid var(--line);
       box-shadow:var(--shadow);
       z-index:50;
+      cursor:pointer;
     }
     .brand{
       font-weight:700;font-size:18px;letter-spacing:.3px;
       text-shadow:0 0 6px rgba(255,255,255,.3);
-    }
-    .repo{
-      font-size:12px;opacity:.6;
-      background:var(--glass);
-      padding:6px 10px;border-radius:12px;
-      backdrop-filter:blur(var(--blur));
-      border:1px solid var(--line);
+      user-select:none;
     }
 
     /* ==== КОЛЛЕКЦИИ ================================================= */
@@ -58,7 +53,10 @@
       position:fixed;left:16px;top:80px;
       display:flex;flex-direction:column;gap:10px;
       z-index:20;
+      transition:max-height .4s ease;
+      overflow:hidden;
     }
+    .collections.collapsed{max-height:0;opacity:0;pointer-events:none;}
     .pill{
       display:inline-flex;align-items:center;justify-content:center;
       padding:9px 16px;
@@ -126,7 +124,6 @@
       border-radius:18px;padding:14px 16px;
       color:var(--fg);
     }
-    .v-right{display:flex;gap:10px}
     .btn{
       padding:9px 14px;border-radius:14px;
       border:1px solid var(--line);
@@ -150,9 +147,8 @@
   </style>
 </head>
 <body>
-  <div class="topbar">
-    <div class="brand">Ozerov Ilya</div>
-    <div class="repo"></div>
+  <div class="topbar" id="topbar">
+    <div class="brand">Ozerov Ilya Gallery</div>
   </div>
 
   <div class="collections" id="collections"></div>
@@ -167,10 +163,7 @@
         <div id="v-title" class="title"></div>
         <div id="v-meta" class="meta"></div>
       </div>
-      <div class="v-right">
-        <button class="btn" id="close">✕</button>
-        <a class="btn" id="rawOpen" target="_blank" rel="noreferrer">Открыть</a>
-      </div>
+      <button class="btn" id="close">✕</button>
     </div>
   </section>
 
@@ -179,7 +172,7 @@
 const GH={owner:'Hazpay',repo:'Galery-Ozerov-Ilya',branch:'main',dir:'paints'};
 const $=s=>document.querySelector(s);
 const grid=$('#view-grid'),colBox=$('#collections');
-const viewer=$('#viewer'),big=$('#big'),vTitle=$('#v-title'),vMeta=$('#v-meta'),rawOpen=$('#rawOpen');
+const viewer=$('#viewer'),big=$('#big'),vTitle=$('#v-title'),vMeta=$('#v-meta');
 let catalog={},flat=[],current=0;
 const parseName=f=>{const b=f.replace(/\.[^.]+$/,'');let t=b,s='',m='';if(b.includes('__'))[t,s,m]=b.split('__');else if(b.includes(' - '))[t,s,m]=b.split(' - ');return{title:t||b,size:s||'',materials:m||''}};
 const isImg=f=>/\.(jpe?g|png|webp|gif|bmp|svg)$/i.test(f);
@@ -224,7 +217,7 @@ function show(scope){
 /* === VIEWER === */
 function openViewer(i){current=(i+flat.length)%flat.length;render();viewer.classList.add('active');idleStart();}
 function closeViewer(){viewer.classList.remove('active');big.src='';idleStop();}
-function render(){const it=flat[current];big.style.transform='none';big.src=it.raw;vTitle.textContent=it.title;vMeta.textContent=[it.collection,it.size,it.materials].filter(Boolean).join(' • ');rawOpen.href=it.raw;}
+function render(){const it=flat[current];big.style.transform='none';big.src=it.raw;vTitle.textContent=it.title;vMeta.textContent=[it.collection,it.size,it.materials].filter(Boolean).join(' • ');}
 function next(){current=(current+1)%flat.length;render();idleReset();}
 function prev(){current=(current-1+flat.length)%flat.length;render();idleReset();}
 $('#next').onclick=next;$('#prev').onclick=prev;$('#close').onclick=closeViewer;
@@ -242,11 +235,15 @@ function idleStop(){clearTimeout(idleTimer);clearTimeout(kenTimer);big.style.tra
 function startKen(){const s=1.1+Math.random()*0.05,tx=Math.random()*20-10,ty=Math.random()*20-10;
 big.style.transform=`scale(${s}) translate(${tx}vw,${ty}vh)`;kenTimer=setTimeout(()=>{big.style.transform='none';startKen();},20000);}
 
+/* === COLLAPSE MENU === */
+const topbar=$('#topbar');let collapsed=false;
+topbar.onclick=()=>{collapsed=!collapsed;colBox.classList.toggle('collapsed',collapsed);};
+
 /* === INIT === */
 loadCatalog().catch(e=>{
   console.error(e);
   grid.innerHTML=`<div style="padding:60px;text-align:center;background:var(--glass);border-radius:18px;backdrop-filter:blur(var(--blur));box-shadow:var(--shadow);">
-  Ошибка загрузки данных из GitHub. Проверь папку <b>${GH.dir}</b>.
+  Ошибка загрузки данных из GitHub.
   </div>`;
 });
 </script>
