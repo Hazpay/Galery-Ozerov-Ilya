@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Галерея художника — GitHub auto-load</title>
+  <style>
+    :root{
+      --bg:#0b0e13; --fg:#e9eef6; --muted:#9aa3b2; --line:#1d2330; --glass:rgba(18,22,30,.45); --acc:#7dd3fc;
+      --card:rgba(255,255,255,.06); --shadow: 0 12px 35px rgba(0,0,0,.45);
+    }
+    @media (prefers-color-scheme: light) {
+      :root{
+        --bg:#f7f8fc; --fg:#0f1220; --muted:#55607a; --line:#dfe3ee; --glass:rgba(255,255,255,.55); --acc:#2563eb;
+        --card:rgba(0,0,0,.05); --shadow: 0 10px 28px rgba(20,40,80,.12);
+      }
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.55 system-ui,Segoe UI,Roboto,Helvetica,Arial,sans-serif;-webkit-font-smoothing:antialiased}
+    a{color:inherit;text-decoration:none}
+
+    /* Шапка */
+    .topbar{position:fixed;inset:0 0 auto 0;height:56px;display:flex;align-items:center;gap:10px;padding:0 14px;border-bottom:1px solid var(--line);z-index:30}
+    .brand{font-weight:700;letter-spacing:.2px;opacity:.95}
+
+    /* Коллекции */
+    .collections{position:fixed;left:12px;top:62px;display:flex;flex-direction:column;gap:8px;z-index:25}
+    .pill{display:inline-flex;align-items:center;gap:8px;border:1px solid var(--line);background:var(--glass);backdrop-filter:blur(14px) saturate(160%);
+      padding:8px 12px;border-radius:999px;box-shadow:var(--shadow);cursor:pointer;transition:transform .15s}
+    .pill:hover{transform:translateY(-2px)} .pill.active{outline:2px solid var(--acc)}
+
+    /* Сетка */
+    .grid{padding:80px 14px 24px 14px;max-width:1400px;margin:0 auto;display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:14px}
+    .card{position:relative;overflow:hidden;border-radius:18px;border:1px solid var(--line);background:var(--card);box-shadow:var(--shadow);cursor:pointer}
+    .card img{width:100%;height:260px;object-fit:cover;display:block;transition:transform .6s ease}
+    .card:hover img{transform:scale(1.04)}
+    .caption{position:absolute;left:10px;bottom:10px;padding:10px 12px;border-radius:14px;border:1px solid var(--line);background:var(--glass);
+      backdrop-filter:blur(16px) saturate(180%);box-shadow:var(--shadow);max-width:86%}
+    .title{font-weight:700}
+    .meta{color:var(--muted);font-size:12px;margin-top:2px}
+
+    /* Вьювер */
+    .viewer{position:fixed;inset:0;background:var(--bg);display:none;z-index:40}
+    .viewer.active{display:block}
+    .slide{position:absolute;inset:56px 0 0 0;display:flex;align-items:center;justify-content:center;overflow:hidden}
+    .slide img{max-width:100%;max-height:100%;object-fit:contain;transition:transform 120s ease;will-change:transform}
+    .v-caption{position:fixed;left:14px;bottom:14px;right:14px;display:flex;justify-content:space-between;gap:14px;align-items:flex-end;z-index:45}
+    .glass{border:1px solid var(--line);background:var(--glass);backdrop-filter:blur(14px) saturate(160%);box-shadow:var(--shadow);border-radius:16px;padding:12px 14px}
+    .v-right{display:flex;gap:8px}
+    .btn{padding:8px 12px;border-radius:12px;border:1px solid var(--line);background:var(--glass);cursor:pointer}
+    .arrow{position:fixed;top:50%;transform:translateY(-50%);z-index:45}
+    .arrow.left{left:10px}.arrow.right{right:10px}
+
+    /* Адаптив */
+    @media (max-width:720px){
+      .collections{left:8px}
+      .grid{grid-template-columns:repeat(auto-fill,minmax(160px,1fr));padding-left:8px;padding-right:8px}
+      .card img{height:200px}
+    }
+  </style>
+</head>
+<body>
+  <div class="topbar">
+    <div class="brand">Галерея</div>
+    <div style="margin-left:auto;opacity:.6;font-size:12px">auto: Hazpay/Galery-Ozerov-Ilya / paints</div>
+  </div>
+
+  <div class="collections" id="collections"></div>
+  <main id="view-grid" class="grid"></main>
+
+  <section id="viewer" class="viewer" aria-hidden="true">
+    <div class="arrow left"><button class="btn" id="prev">←</button></div>
+    <div class="arrow right"><button class="btn" id="next">→</button></div>
+    <div class="slide"><img id="big" alt="artwork"/></div>
+    <div class="v-caption">
+      <div class="glass">
+        <div id="v-title" class="title"></div>
+        <div id="v-meta" class="meta"></div>
+      </div>
+      <div class="v-right">
+        <button class="btn" id="close">✕</button>
+        <a class="btn" id="rawOpen" target="_blank" rel="noreferrer">Открыть файл</a>
+      </div>
+    </div>
+  </section>
+
+<script>
+/* ================== КОНФИГ GITHUB ================== */
+const GH = {
+  owner: 'Hazpay',
+  repo:  'Galery-Ozerov-Ilya',
+  branch:'main',
+  dir:   'paints'
+};
+/* =============== УТИЛИТЫ И СОСТОЯНИЕ =============== */
+const $ = s=>document.querySelector(s);
+const grid = $('#view-grid'), colBox=$('#collections');
+const viewer=$('#viewer'), big=$('#big'), vTitle=$('#v-title'), vMeta=$('#v-meta'), rawOpen=$('#rawOpen');
+
+let catalog = {}; // { collection: [ {title,size,materials,raw,...} ] }
+let flat = [];    // текущий набор для слайдера
+let current = 0;
+
+function escapeHtml(s=''){return s.replace(/[&<>\"']/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c]))}
+function parseName(filename){
+  const base = filename.replace(/\.[^.]+$/,'');
+  let title=base, size='', materials='';
+  if(base.includes('__')){ const [t,s,m]=base.split('__'); title=t||base; size=s||''; materials=m||''; }
+  else if(base.includes(' - ')){ const [t,s,m]=base.split(' - '); title=t||base; size=s||''; materials=m||''; }
+  return {title,size,materials};
+}
+function isImage(name){ return /\.(jpe?g|png|webp|gif|bmp|svg)$/i.test(name); }
+function rawUrl(path){ return `https://raw.githubusercontent.com/${GH.owner}/${GH.repo}/${GH.branch}/${path}`; }
+async function ghList(path){
+  const api = `https://api.github.com/repos/${GH.owner}/${GH.repo}/contents/${encodeURIComponent(path)}?ref=${GH.branch}&per_page=100`;
+  const r = await fetch(api, {headers:{'Accept':'application/vnd.github+json'}});
+  if(!r.ok) throw new Error('GitHub API: '+r.status);
+  return r.json();
+}
+
+/* ================== ЗАГРУЗКА КАТАЛОГА ================== */
+async function loadCatalog(){
+  const root = await ghList(GH.dir);
+  const folders = root.filter(x=>x.type==='dir');
+  for(const f of folders){
+    const list = await ghList(`${GH.dir}/${f.name}`);
+    catalog[f.name] = list
+      .filter(x=>x.type==='file' && isImage(x.name))
+      .map(x=>{
+        const meta = parseName(x.name);
+        return {
+          collection: f.name,
+          name: x.name,
+          ...meta,
+          raw: rawUrl(`${GH.dir}/${f.name}/${x.name}`),
+          html_url: x.html_url
+        };
+      });
+  }
+  buildUI();
+}
+
+/* ================== UI ПОСТРОЕНИЕ ================== */
+function buildUI(){
+  colBox.innerHTML = '';
+  colBox.appendChild(pill('Все', ()=>showGrid('ALL'), true));
+  for(const col of Object.keys(catalog).sort((a,b)=>a.localeCompare(b,'ru'))){
+    colBox.appendChild(pill(col, ()=>showGrid(col)));
+  }
+  showGrid('ALL');
+}
+function pill(label, onclick, active=false){
+  const el = document.createElement('div');
+  el.className = 'pill'+(active?' active':'');
+  el.textContent = label;
+  el.onclick = ()=>{
+    document.querySelectorAll('.pill').forEach(p=>p.classList.remove('active'));
+    el.classList.add('active'); onclick();
+  };
+  return el;
+}
+function showGrid(scope){
+  viewer.classList.remove('active');
+  const items=[];
+  if(scope==='ALL'){ Object.values(catalog).forEach(arr=>items.push(...arr)); }
+  else { items.push(...(catalog[scope]||[])); }
+  flat = items;
+  grid.innerHTML = items.map((it,i)=>`
+    <article class="card" data-idx="${i}">
+      <img loading="lazy" src="${it.raw}" alt="${escapeHtml(it.title)}"/>
+      <div class="caption">
+        <div class="title">${escapeHtml(it.title || it.name)}</div>
+        <div class="meta">${escapeHtml([it.size,it.materials].filter(Boolean).join(' · '))}</div>
+      </div>
+    </article>
+  `).join('');
+  grid.querySelectorAll('.card').forEach(card=>{
+    card.onclick = ()=> openViewer(parseInt(card.dataset.idx,10));
+  });
+}
+
+/* ================== ВЬЮВЕР / СЛАЙДЕР ================== */
+function openViewer(idx){
+  current = (idx+flat.length)%flat.length;
+  renderSlide();
+  viewer.classList.add('active');
+  viewer.setAttribute('aria-hidden','false');
+  idleStart();
+}
+function closeViewer(){
+  viewer.classList.remove('active');
+  viewer.setAttribute('aria-hidden','true');
+  big.src=''; idleStop();
+}
+function renderSlide(){
+  const it = flat[current];
+  big.style.transform='none';
+  big.src = it.raw;
+  vTitle.textContent = it.title || it.name;
+  vMeta.textContent = [it.collection, it.size, it.materials].filter(Boolean).join(' · ');
+  rawOpen.href = it.raw;
+}
+function next(){ current=(current+1)%flat.length; renderSlide(); idleReset(); }
+function prev(){ current=(current-1+flat.length)%flat.length; renderSlide(); idleReset(); }
+
+/* Клавиши / кнопки / свайпы */
+document.getElementById('next').onclick = next;
+document.getElementById('prev').onclick = prev;
+document.getElementById('close').onclick = closeViewer;
+window.addEventListener('keydown',e=>{
+  if(!viewer.classList.contains('active')) return;
+  if(e.key==='ArrowRight') next();
+  else if(e.key==='ArrowLeft') prev();
+  else if(e.key==='Escape') closeViewer();
+});
+(function swipe(el){
+  let x0=null,y0=null;
+  el.addEventListener('touchstart',e=>{const t=e.touches[0];x0=t.clientX;y0=t.clientY;idleStop();},{passive:true});
+  el.addEventListener('touchend',e=>{
+    if(x0===null) return;
+    const dx=(e.changedTouches[0].clientX-x0); const dy=(e.changedTouches[0].clientY-y0);
+    if(Math.abs(dx)>50 && Math.abs(dx)>Math.abs(dy)) { dx<0?next():prev(); }
+    idleStart(); x0=y0=null;
+  },{passive:true});
+})(viewer);
+
+/* ================== Режим «рассматривания» ================== */
+let idleTimer=null, kenTimer=null;
+function idleStart(){ clearTimeout(idleTimer); idleTimer=setTimeout(startKenBurns, 5000);
+  window.addEventListener('mousemove', idleResetOnce, {once:true});
+  window.addEventListener('keydown', idleResetOnce, {once:true});
+  viewer.addEventListener('touchstart', idleResetOnce, {once:true});
+}
+function idleReset(){ clearTimeout(idleTimer); clearTimeout(kenTimer); big.style.transform='none'; idleStart(); }
+function idleResetOnce(){ idleReset(); }
+function idleStop(){ clearTimeout(idleTimer); clearTimeout(kenTimer); big.style.transform='none'; }
+function startKenBurns(){
+  const scale = 1.12 + Math.random()*0.06;
+  const tx = (Math.random()*20-10);
+  const ty = (Math.random()*20-10);
+  big.style.transform = `scale(${scale}) translate(${tx}vw, ${ty}vh)`;
+  kenTimer = setTimeout(()=>{ big.style.transform='none'; startKenBurns(); }, 25000);
+}
+
+/* ================== СТАРТ ================== */
+loadCatalog().catch(err=>{
+  console.error(err);
+  grid.innerHTML = `<div class="glass" style="margin:90px auto;max-width:760px;padding:12px 14px">
+    Не удалось загрузить данные из GitHub. Проверь репозиторий и папку <code>${GH.dir}</code>.
+  </div>`;
+});
+</script>
+</body>
+</html>
