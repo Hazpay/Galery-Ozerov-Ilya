@@ -1,8 +1,8 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-  <meta charset="UTF-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Ozerov Ilya Gallery</title>
   <style>
     :root{
@@ -29,36 +29,33 @@
       -webkit-font-smoothing:antialiased;
     }
 
-    /* ===== ДИНАМИЧЕСКИЙ ФОН ===== */
-    .bg-art{
-      position:fixed; inset:0; z-index:-1; overflow:hidden;
-      background:radial-gradient(1200px 800px at 10% 10%, rgba(255,255,255,.06), transparent 60%);
-    }
-    .bg-art img{
+    /* ==== ФОН: случайная картинка из каталога ==== */
+    .bg{position:fixed; inset:0; z-index:-1; overflow:hidden;}
+    .bg img{
       position:absolute; left:50%; top:50%;
-      transform:translate(-50%,-50%) scale(1.2);
-      min-width:120%; min-height:120%; object-fit:cover;
-      filter:blur(22px) saturate(120%) brightness(0.8);
-      opacity:0.45; pointer-events:none;
-      animation: bg-panzoom 28s ease-in-out infinite alternate;
+      transform:translate(-50%,-50%) scale(1.25);
+      width:100vw; height:100vh; object-fit:cover;
+      filter:blur(20px) brightness(0.85) saturate(120%);
+      opacity:0.6; pointer-events:none;
+      animation:bgmove 45s ease-in-out infinite alternate;
       will-change:transform;
     }
-    .bg-art::after{
-      content:""; position:absolute; inset:0;
-      background:radial-gradient(1200px 800px at 50% 50%, rgba(0,0,0,.0) 0%, rgba(0,0,0,.35) 70%);
-    }
-    @keyframes bg-panzoom{
-      0%   { transform:translate(-48%,-52%) scale(1.18); }
-      100% { transform:translate(-55%,-45%) scale(1.28); }
+    @keyframes bgmove{
+      0%{transform:translate(-48%,-52%) scale(1.25);}
+      100%{transform:translate(-55%,-45%) scale(1.32);}
     }
 
-    /* ===== ШАПКА ===== */
+    /* ==== ХЭДЕР ==== */
     .topbar{
       position:fixed;top:0;left:0;right:0;height:64px;
       display:flex;align-items:center;justify-content:space-between;
-      padding:0 20px;backdrop-filter:blur(var(--blur)) saturate(180%);
-      background:var(--glass);border-bottom:1px solid var(--line);
-      box-shadow:var(--shadow);z-index:50;cursor:pointer;
+      padding:0 20px;
+      backdrop-filter:blur(var(--blur)) saturate(180%);
+      background:var(--glass);
+      border-bottom:1px solid var(--line);
+      box-shadow:var(--shadow);
+      z-index:50;
+      cursor:pointer;
     }
     .brand{
       font-weight:700;font-size:18px;letter-spacing:.3px;
@@ -66,42 +63,29 @@
       user-select:none;
     }
 
-    /* ===== ЕДИНЫЙ LIQUID GLASS-МЕНЮ ===== */
-    .glass-menu{
+    /* ==== КОЛЛЕКЦИИ ==== */
+    .collections{
       position:fixed;left:16px;top:80px;
-      padding:16px 18px;border-radius:24px;
-      background:var(--glass);
-      border:1px solid var(--line);
-      backdrop-filter:blur(var(--blur)) saturate(180%);
-      box-shadow:var(--shadow);
-      display:flex;flex-direction:column;gap:14px;
-      transition:transform .4s cubic-bezier(.2,.7,.2,1), opacity .28s ease;
-      z-index:25;max-width:240px;
+      display:flex;flex-direction:column;gap:10px;z-index:20;
+      transition:max-height .4s ease, opacity .25s ease;overflow:hidden;
     }
-    .glass-menu.collapsed{
-      transform:translateY(-20px) scale(0.96);
-      opacity:0; pointer-events:none;
-    }
-    .glass-header{
-      font-weight:700; font-size:16px; text-align:center;
-      letter-spacing:.4px; padding-bottom:8px; user-select:none;
-      border-bottom:1px solid var(--line);
-      text-shadow:0 0 6px rgba(255,255,255,.3);
-    }
-
-    .collections{ display:flex;flex-direction:column;gap:8px; }
+    .collections.collapsed{max-height:0;opacity:0;pointer-events:none;}
     .pill{
-      display:block; text-align:center; padding:8px 10px;
-      border-radius:12px; color:var(--fg);
-      background:rgba(255,255,255,.08);
-      backdrop-filter:blur(var(--blur));
-      transition:.25s ease;
-      border:1px solid var(--line);
+      display:inline-flex;align-items:center;justify-content:center;
+      padding:9px 16px;border-radius:999px;font-weight:500;color:var(--fg);
+      background:var(--glass);border:1px solid var(--line);
+      backdrop-filter:blur(var(--blur)) saturate(180%);
+      box-shadow:inset 0 1px 2px rgba(255,255,255,.15),var(--shadow);
+      cursor:pointer;transition:.25s ease;
     }
-    .pill:hover{ background:rgba(255,255,255,.18); transform:translateY(-1px); }
-    .pill.active{ background:rgba(255,255,255,.28); box-shadow:0 0 12px var(--acc); }
+    .pill:hover{transform:translateY(-2px) scale(1.03);background:rgba(255,255,255,.12)}
+    .pill.active{
+      background:linear-gradient(135deg,rgba(255,255,255,.25),rgba(255,255,255,.05));
+      box-shadow:0 0 12px var(--acc);
+      border:1px solid rgba(255,255,255,.4);
+    }
 
-    /* ===== СЕТКА ===== */
+    /* ==== ГРИД ==== */
     .grid{
       padding:100px 24px 32px 24px;
       max-width:1500px;margin:0 auto;
@@ -113,12 +97,8 @@
       border-radius:22px;background:var(--glass);
       border:1px solid var(--line);box-shadow:var(--shadow);
       transition:transform .4s ease, box-shadow .4s ease;
-      transform-style:preserve-3d;
     }
-    .card:hover{
-      transform:translateY(-5px) scale(1.02) rotateX(0.6deg) rotateY(-0.6deg);
-      box-shadow:0 18px 45px rgba(0,0,0,.6);
-    }
+    .card:hover{transform:translateY(-5px) scale(1.02);box-shadow:0 18px 45px rgba(0,0,0,.6);}
     .card img{
       width:100%;height:280px;object-fit:cover;display:block;
       filter:brightness(0.95);
@@ -135,7 +115,7 @@
     .title{font-weight:600;text-shadow:0 1px 3px rgba(0,0,0,.4);}
     .meta{font-size:13px;opacity:.85;margin-top:3px;}
 
-    /* ===== ВЬЮВЕР ===== */
+    /* ==== ВЬЮВЕР ==== */
     .viewer{position:fixed;inset:0;z-index:100;display:none;background:rgba(0,0,0,.85);backdrop-filter:blur(var(--blur));}
     .viewer.active{display:block;}
     .slide{position:absolute;inset:64px 0 0 0;display:flex;align-items:center;justify-content:center;overflow:hidden}
@@ -159,33 +139,21 @@
     .arrow{position:fixed;top:50%;transform:translateY(-50%);z-index:110}
     .arrow.left{left:16px}.arrow.right{right:16px}
 
-    @keyframes ken1{0%{transform:scale(1) translate(0,0)}100%{transform:scale(1.08) translate(12px,-8px)}}
-    @keyframes ken2{0%{transform:scale(1.02) translate(0,0)}100%{transform:scale(1.12) translate(-10px,10px)}}
-    .kenburns-1{animation:ken1 22s ease-in-out forwards}
-    .kenburns-2{animation:ken2 22s ease-in-out forwards}
-
     @media(max-width:720px){
       .grid{grid-template-columns:repeat(auto-fill,minmax(160px,1fr));padding-left:12px;padding-right:12px}
       .card img{height:200px}
-      .glass-menu{max-width:180px}
     }
   </style>
 </head>
 <body>
-  <!-- живой фон -->
-  <div class="bg-art"><img id="bgImg" alt=""></div>
+  <!-- 1) ФОН (изображение ставим из JS случайно после загрузки каталога) -->
+  <div class="bg"><img id="bgImg" alt="background"></div>
 
-  <!-- шапка — по клику сворачивает/разворачивает блок меню -->
   <div class="topbar" id="topbar">
     <div class="brand">Ozerov Ilya Gallery</div>
   </div>
 
-  <!-- единый стеклянный блок-меню -->
-  <div class="glass-menu" id="glassMenu">
-    <div class="glass-header">Ozerov Ilya Gallery</div>
-    <div class="collections" id="collections"></div>
-  </div>
-
+  <div class="collections" id="collections"></div>
   <main id="view-grid" class="grid"></main>
 
   <section id="viewer" class="viewer" aria-hidden="true">
@@ -202,21 +170,17 @@
   </section>
 
 <script>
-/* ====== Источник: GitHub (как раньше) ====== */
+/* === GITHUB SOURCE (как у тебя) === */
 const GH={owner:'Hazpay',repo:'Galery-Ozerov-Ilya',branch:'main',dir:'paints'};
-
 const $=s=>document.querySelector(s);
-const grid=$('#view-grid'), collBox=$('#collections');
+const topbar=$('#topbar'), colBox=$('#collections'), grid=$('#view-grid');
 const viewer=$('#viewer'), big=$('#big'), vTitle=$('#v-title'), vMeta=$('#v-meta');
-const topbar=$('#topbar'), glassMenu=$('#glassMenu');
-const bgImg=document.getElementById('bgImg');
-
+const bgImg=$('#bgImg');
 let catalog={},flat=[],current=0;
 
 const parseName=f=>{const b=f.replace(/\.[^.]+$/,'');let t=b,s='',m='';if(b.includes('__'))[t,s,m]=b.split('__');else if(b.includes(' - '))[t,s,m]=b.split(' - ');return{title:t||b,size:s||'',materials:m||''}};
 const isImg=f=>/\.(jpe?g|png|webp|gif|bmp|svg)$/i.test(f);
 const raw=p=>`https://raw.githubusercontent.com/${GH.owner}/${GH.repo}/${GH.branch}/${p}`;
-
 async function ghList(path){
   const api=`https://api.github.com/repos/${GH.owner}/${GH.repo}/contents/${encodeURIComponent(path)}?ref=${GH.branch}&per_page=100`;
   const r=await fetch(api,{headers:{'Accept':'application/vnd.github+json'}});
@@ -224,7 +188,15 @@ async function ghList(path){
   return r.json();
 }
 
-/* ====== Загрузка каталога ====== */
+/* === Рандомный фон из каталога === */
+function setRandomBackground(){
+  const all = Object.values(catalog).flat();
+  if(!all.length) return;
+  const item = all[Math.floor(Math.random()*all.length)];
+  bgImg.src = item.raw; // ставим ссылку на файл из репо
+}
+
+/* === Загрузка каталога === */
 async function loadCatalog(){
   const root=await ghList(GH.dir);
   const folders=root.filter(x=>x.type==='dir');
@@ -238,111 +210,45 @@ async function loadCatalog(){
       });
   }
   buildUI();
+  // после построения каталога выбираем случайный фон
+  setRandomBackground();
 }
 
-/* ====== Динамический фон (рандомная работа) ====== */
-let bgTimer=null;
-function pickRandomBackground(allItems){
-  if(!allItems.length) return;
-  const i = Math.floor(Math.random()*allItems.length);
-  const item = allItems[i];
-  bgImg.style.animation='none'; bgImg.offsetHeight; // перезапуск
-  bgImg.src = item.raw;
-  bgImg.style.animation='';
-}
-function startBackgroundLoop(allItems){
-  clearInterval(bgTimer);
-  pickRandomBackground(allItems);
-  bgTimer = setInterval(()=>pickRandomBackground(allItems), 35000);
-}
-
-/* ====== UI ====== */
+/* === UI === */
 function buildUI(){
-  // меню коллекций в едином стеклянном блоке
-  collBox.innerHTML='';
-  collBox.appendChild(pill('Все',()=>show('ALL'),true));
-  Object.keys(catalog).sort((a,b)=>a.localeCompare(b,'ru',{numeric:true}))
-    .forEach(c=>collBox.appendChild(pill(c,()=>show(c))));
-
-  show('ALL'); // построить сетку
-
-  // старт живого фона и параллакса
-  const allItems = Object.values(catalog).flat();
-  startBackgroundLoop(allItems);
-  enableParallaxOnCards(grid);
+  colBox.innerHTML='';
+  colBox.appendChild(pill('All',()=>show('ALL'),true));
+  Object.keys(catalog).sort((a,b)=>a.localeCompare(b,'ru')).forEach(c=>colBox.appendChild(pill(c,()=>show(c))));
+  show('ALL');
 }
-function pill(lbl,on,active=false){
-  const el=document.createElement('div');
-  el.className='pill'+(active?' active':'');
-  el.textContent=lbl;
-  el.onclick=()=>{
-    document.querySelectorAll('.pill').forEach(p=>p.classList.remove('active'));
-    el.classList.add('active'); on();
-  };
-  return el;
-}
+function pill(lbl,on,act){const e=document.createElement('div');e.className='pill'+(act?' active':'');e.textContent=lbl;
+  e.onclick=()=>{document.querySelectorAll('.pill').forEach(p=>p.classList.remove('active'));e.classList.add('active');on();};return e;}
 function show(scope){
   viewer.classList.remove('active');
-  const items=[];
-  if(scope==='ALL'){ Object.values(catalog).forEach(a=>items.push(...a)); }
-  else { items.push(...(catalog[scope]||[])); }
+  const items=[]; if(scope==='ALL'){Object.values(catalog).forEach(a=>items.push(...a));} else {items.push(...(catalog[scope]||[]));}
   flat=items;
   grid.innerHTML=items.map((it,i)=>`
     <article class="card" data-idx="${i}">
       <img loading="lazy" src="${it.raw}" alt="${it.title}">
-      <div class="caption">
-        <div class="title">${it.title}</div>
-        <div class="meta">${[it.collection,it.size,it.materials].filter(Boolean).join(' • ')}</div>
-      </div>
+      <div class="caption"><div class="title">${it.title}</div><div class="meta">${[it.collection,it.size,it.materials].filter(Boolean).join(' • ')}</div></div>
     </article>`).join('');
   grid.querySelectorAll('.card').forEach(c=>c.onclick=()=>openViewer(+c.dataset.idx));
 }
 
-/* ====== Viewer ====== */
-function openViewer(i){current=(i+flat.length)%flat.length;render();viewer.classList.add('active');idleStart();}
-function closeViewer(){viewer.classList.remove('active');big.src='';idleStop();}
-function render(){const it=flat[current];big.style.transform='none';big.src=it.raw;vTitle.textContent=it.title;vMeta.textContent=[it.collection,it.size,it.materials].filter(Boolean).join(' • ');}
-function next(){current=(current+1)%flat.length;render();idleReset();}
-function prev(){current=(current-1+flat.length)%flat.length;render();idleReset();}
+/* === Viewer === */
+function openViewer(i){current=(i+flat.length)%flat.length;render();viewer.classList.add('active');}
+function closeViewer(){viewer.classList.remove('active');big.src='';}
+function render(){const it=flat[current];big.src=it.raw;vTitle.textContent=it.title;vMeta.textContent=[it.collection,it.size,it.materials].filter(Boolean).join(' • ');}
+function next(){current=(current+1)%flat.length;render();}
+function prev(){current=(current-1+flat.length)%flat.length;render();}
 document.getElementById('next').onclick=next;document.getElementById('prev').onclick=prev;document.getElementById('close').onclick=closeViewer;
-window.addEventListener('keydown',e=>{if(!viewer.classList.contains('active'))return;if(e.key==='ArrowRight')next();else if(e.key==='ArrowLeft')prev();else if(e.key==='Escape')closeViewer();});
-(function swipe(el){let x0=null,y0=null;el.addEventListener('touchstart',e=>{const t=e.touches[0];x0=t.clientX;y0=t.clientY;idleStop();},{passive:true});
-el.addEventListener('touchend',e=>{if(x0===null)return;const dx=e.changedTouches[0].clientX-x0,dy=Math.abs(e.changedTouches[0].clientY-y0);
-if(Math.abs(dx)>50&&Math.abs(dx)>Math.abs(dy))dx<0?next():prev();idleStart();x0=y0=null;},{passive:true});})(viewer);
 
-/* ====== Idle Ken Burns ====== */
-let idleTimer=null,kenTimer=null;
-function idleStart(){clearTimeout(idleTimer);idleTimer=setTimeout(startKen,4000);
-  window.addEventListener('mousemove',idleResetOnce,{once:true});
-  window.addEventListener('keydown',idleResetOnce,{once:true});
-  viewer.addEventListener('touchstart',idleResetOnce,{once:true});
-}
-function idleReset(){clearTimeout(idleTimer);clearTimeout(kenTimer);big.style.transform='none';idleStart();}
-function idleResetOnce(){idleReset();}
-function idleStop(){clearTimeout(idleTimer);clearTimeout(kenTimer);big.style.transform='none';}
-function startKen(){const s=1.1+Math.random()*0.05,tx=Math.random()*20-10,ty=Math.random()*20-10;
-  big.style.transform=`scale(${s}) translate(${tx}vw,${ty}vh)`;kenTimer=setTimeout(()=>{big.style.transform='none';startKen();},20000);}
+/* === Сворачивание меню (как было) === */
+let collapsed=false; topbar.onclick=()=>{collapsed=!collapsed; colBox.classList.toggle('collapsed',collapsed);};
 
-/* ====== Параллакс карточек (мягкий) ====== */
-function enableParallaxOnCards(gridEl){
-  gridEl.addEventListener('mousemove', (e)=>{
-    const rect = gridEl.getBoundingClientRect();
-    const nx = ((e.clientX-rect.left)/rect.width  - 0.5)*2;
-    const ny = ((e.clientY-rect.top) /rect.height - 0.5)*2;
-    gridEl.querySelectorAll('.card').forEach(card=>{
-      card.style.transform = `translateY(-5px) scale(1.02) rotateX(${ny*1.0}deg) rotateY(${nx*-1.0}deg)`;
-    });
-  });
-  gridEl.addEventListener('mouseleave', ()=> gridEl.querySelectorAll('.card').forEach(c=>c.style.transform=''));
-}
-
-/* ====== Сворачивание единого стеклянного меню ====== */
-let collapsed=false;
-topbar.onclick=()=>{collapsed=!collapsed; glassMenu.classList.toggle('collapsed',collapsed);};
-
-/* ====== INIT ====== */
-loadCatalog().catch(err=>{
-  console.error(err);
+/* === INIT === */
+loadCatalog().catch(e=>{
+  console.error(e);
   grid.innerHTML=`<div style="padding:60px;text-align:center;background:var(--glass);border-radius:18px;backdrop-filter:blur(var(--blur));box-shadow:var(--shadow);">
     Ошибка загрузки данных из GitHub. Проверь репозиторий и папку <b>${GH.dir}</b>.
   </div>`;
