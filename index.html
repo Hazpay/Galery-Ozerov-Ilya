@@ -291,8 +291,8 @@ let collapsed=false; topbar.onclick=()=>{collapsed=!collapsed; colBox.classList.
 let idleTimer = null;
 let presSlideTimer = null;
 let isPresenting = false;
-const IDLE_MS = 35000;          // 35 секунд до старта презентации
-const SLIDE_MS = 26000;         // длительность одного кадра (анимация ~24s)
+const IDLE_MS = 15000;          // 35 секунд до старта презентации
+const SLIDE_MS = 6000;         // длительность одного кадра (анимация ~24s)
 const MIN_SCALE = 1.02, MAX_SCALE = 1.20;
 
 function allItemsFlat(){ try { return Object.values(catalog).flat(); } catch { return []; } }
