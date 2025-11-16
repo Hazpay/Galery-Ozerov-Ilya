@@ -234,7 +234,7 @@ async function ghList(path){
   return r.json();
 }
 
-/* === Загрузка каталога (фон теперь не нужен) === */
+/* === Загрузка каталога === */
 async function loadCatalog(){
   const root=await ghList(GH.dir);
   const folders=root.filter(x=>x.type==='dir');
@@ -251,7 +251,8 @@ async function loadCatalog(){
       });
   }
   buildUI();
-  armIdleAfterBuild();
+  // Сразу запускаем презентацию после загрузки (как при бездействии)
+  startPresentation();
 }
 
 /* === UI === */
@@ -296,7 +297,7 @@ topbar.onclick=topbar.onkeydown=(ev)=>{if(ev.type==='click'||ev.key==='Enter'){c
 let idleTimer = null;
 let presSlideTimer = null;
 let isPresenting = false;
-const IDLE_MS = 45000;
+const IDLE_MS = 45000;  // Таймер бездействия остаётся (для повторного запуска после активности)
 const SLIDE_MS = 6000;
 const MIN_SCALE = 1.02, MAX_SCALE = 1.20;
 
@@ -359,11 +360,6 @@ function resetIdleTimer(){
 ['mousemove','mousedown','keydown','touchstart','scroll','wheel'].forEach(evt=>{
   window.addEventListener(evt, resetIdleTimer, {passive:true});
 });
-
-function armIdleAfterBuild(){
-  clearTimeout(idleTimer);
-  idleTimer = setTimeout(startPresentation, IDLE_MS);
-}
 
 /* === INIT === */
 loadCatalog().catch(e=>{
