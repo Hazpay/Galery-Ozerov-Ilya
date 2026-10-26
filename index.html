@@ -222,6 +222,9 @@ let catalog={},flat=[],current=0;
 const parseName=f=>{const b=f.replace(/\.[^.]+$/,'');let t=b,s='',m='';if(b.includes('__'))[t,s,m]=b.split('__');else if(b.includes(' - '))[t,s,m]=b.split(' - ');return{title:t||b,size:s||'',materials:m||''}};
 const isImg=f=>/\.(jpe?g|png|webp|gif|bmp|svg)$/i.test(f);
 const raw=p=>`https://raw.githubusercontent.com/${GH.owner}/${GH.repo}/${GH.branch}/${p}`;
+// Карточки используют кэшируемые уменьшенные WebP-превью, оригинал нужен только в viewer.
+const preview=p=>`https://wsrv.nl/?url=${encodeURIComponent(raw(p))}&w=640&output=webp&q=78`;
+const bgPreview=p=>`https://wsrv.nl/?url=${encodeURIComponent(raw(p))}&w=1600&output=webp&q=65`;
 async function ghList(path){
   const api=`https://api.github.com/repos/${GH.owner}/${GH.repo}/contents/${encodeURIComponent(path)}?ref=${GH.branch}&per_page=100`;
   const r=await fetch(api,{headers:{'Accept':'application/vnd.github+json'}});
@@ -234,7 +237,7 @@ function setRandomBackground(){
   const all = Object.values(catalog).flat();
   if(!all.length) return;
   const item = all[Math.floor(Math.random()*all.length)];
-  bgImg.src = item.raw;
+  bgImg.src = item.bg;
 }
 
 /* === Загрузка каталога === */
@@ -247,7 +250,8 @@ async function loadCatalog(){
       .filter(x=>x.type==='file'&&isImg(x.name))
       .map(x=>{
         const meta=parseName(x.name);
-        return{collection:f.name,name:x.name,...meta,raw:raw(`${GH.dir}/${f.name}/${x.name}`)};
+        const path=`${GH.dir}/${f.name}/${x.name}`;
+        return{collection:f.name,name:x.name,...meta,raw:raw(path),preview:preview(path),bg:bgPreview(path)};
       });
   }
   buildUI();
@@ -270,7 +274,7 @@ function show(scope){
   flat=items;
   grid.innerHTML=items.map((it,i)=>`
     <article class="card" data-idx="${i}">
-      <img loading="lazy" src="${it.raw}" alt="${it.title}">
+      <img loading="lazy" decoding="async" width="640" height="480" src="${it.preview}" alt="${it.title}">
       <div class="caption"><div class="title">${it.title}</div><div class="meta">${[it.collection,it.size,it.materials].filter(Boolean).join(' • ')}</div></div>
     </article>`).join('');
   grid.querySelectorAll('.card').forEach(c=>c.onclick=()=>openViewer(+c.dataset.idx));
